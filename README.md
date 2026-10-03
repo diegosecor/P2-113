@@ -2,6 +2,12 @@
 
 **Path Frequency is an interactive visual reading of a GPX activity.** Instead of showing a conventional fitness dashboard, it turns a hike, run, or bike route into a moving graphic: the route becomes a copper line, speed becomes a red-to-green glow, elevation becomes a small profile, and playback lets the viewer travel through the activity.
 
+## Open the app
+
+[**Open Path Frequency**](https://diegosecor.github.io/P2-113/)
+
+> This link becomes public after GitHub Pages is enabled for this repository. Until then, open `dist/index.html` locally in a browser.
+
 The project is designed for someone who has a GPX file from a GPS device, Strava export, Garmin activity, or similar source and wants to understand the *character* of the route: where it moved slowly, where it moved quickly, how the elevation changed, and how the route sits in a geographic context.
 
 > Path Frequency is a data visualisation, not a navigation tool or an exact GIS map. The OpenStreetMap layer is deliberately subtle and provides context and place labels behind the custom route drawing.
