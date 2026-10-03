@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Interactive topography created from a GPX route."
+    />
+    <title>Path Frequency</title>
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2306090f'/%3E%3Cpath d='M10 47C22 36 24 17 37 23s9 21 18 11' fill='none' stroke='%23e8752e' stroke-width='5' stroke-linecap='round'/%3E%3Ccircle cx='37' cy='23' r='5' fill='%23ffe15c'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <!-- Interface structure: route canvas, import/save controls, view controls, and hidden desktop fallback panels. -->
+    <main>
+      <header>
+        <div>
+          <h1>Path Frequency</h1>
+          <p class="subtitle" id="routeName">Interactive route topography</p>
+        </div>
+        <span class="status" id="dataStatus">Route loaded</span>
+      </header>
+      <section class="workspace">
+        <div class="visual" id="visual">
+          <iframe
+            class="map-layer"
+            title="OpenStreetMap background"
+            src="https://www.openstreetmap.org/export/embed.html?bbox=-75.49%2C4.63%2C-75.38%2C4.73&amp;layer=mapnik"
+          ></iframe
+          ><canvas
+            id="canvas"
+            aria-label="Interactive route topography"
+          ></canvas>
+          <div class="overlay">
+            <span class="label" id="modeLabel">Mode: speed</span>
+            <div class="event" id="eventBox">
+              <b id="eventTitle"></b><span id="eventText"></span>
+            </div>
+          </div>
+          <div class="library">
+            <label class="import-route"
+              >Import GPX<input
+                id="file"
+                type="file"
+                accept=".gpx,application/gpx+xml,text/xml" /></label
+            ><select id="sport" aria-label="Sport">
+              <option value="Hiking">Hiking</option>
+              <option value="Running">Running</option>
+              <option value="Bike">Bike</option></select
+            ><button id="saveRoute" type="button">Save route</button>
+          </div>
+          <div class="route-dots" id="routeDots"></div>
+          <div class="speedo" id="speedo">
+            <div>
+              <strong id="speedValue">0.0</strong
+              ><span id="speedLabel">km/h · average</span>
+            </div>
+          </div>
+          <button id="resetView" class="reset-view" type="button">
+            Center route
+          </button>
+          <section class="elevation-profile" aria-label="Elevation profile">
+            <div class="elevation-profile__head">
+              <span>Elevation</span><span id="elevationRange"></span>
+            </div>
+            <canvas
+              id="elevationChart"
+              aria-label="Elevation profile chart"
+            ></canvas>
+          </section>
+          <label class="map-opacity"
+            >Map opacity
+            <input
+              id="mapOpacity"
+              type="range"
+              min="0"
+              max="100"
+              value="82"
+              aria-label="Map background opacity"
+          /></label>
+          <div class="controls">
+            <button id="play" type="button">Play</button
+            ><input
+              id="scrubber"
+              type="range"
+              min="0"
+              max="1"
+              step="0.001"
+              value="0"
+              aria-label="Route progress"
+            /><span class="time" id="time">00:00</span>
+          </div>
+        </div>
+        <aside>
+          <section class="panel">
+            <h2>Import activity</h2>
+            <p class="hint" style="margin-top: 0.7rem">
+              Files are processed locally in your browser.
+            </p>
+          </section>
+          <section class="panel">
+            <h2>Route reading</h2>
+            <div class="choices">
+              <button class="active" data-mode="speed" type="button">
+                Speed</button
+              ><button data-mode="grade" type="button">Grade</button>
+            </div>
+          </section>
+          <section class="panel">
+            <h2>Activity</h2>
+            <div class="metrics">
+              <div class="metric">
+                <strong id="distance">30.6 km</strong><span>Distance</span>
+              </div>
+              <div class="metric">
+                <strong id="duration">12 h 10 m</strong><span>Duration</span>
+              </div>
+              <div class="metric">
+                <strong id="elevation">4,611 m</strong
+                ><span>Highest point</span>
+              </div>
+              <div class="metric">
+                <strong id="descent">−2,683 m</strong><span>Descent</span>
+              </div>
+            </div>
+          </section>
+          <section class="panel">
+            <h2>Legend</h2>
+            <div class="legend" id="legend"></div>
+          </section>
+        </aside>
+      </section>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>
