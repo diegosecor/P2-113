@@ -1,44 +1,45 @@
 # Path Frequency
 
-Path Frequency turns a GPX activity into an interactive visual route. Instead of a conventional fitness dashboard, it uses colour, movement, elevation, and geometric drawing to reveal the character of a hike, run, or bike ride.
+[Open the live app](https://diegosecor.github.io/P2-113/)
 
-## Live app
+Path Frequency turns a GPX activity into an interactive visual route for hiking, running, or cycling. It combines a speed-coloured route, elevation and speed profiles, playback, and geographic context instead of a conventional fitness dashboard.
 
-[**Open Path Frequency**](https://diegosecor.github.io/P2-113/)
+## What it does
 
-## What it shows
+- Imports a GPX and calculates distance, elevation, pace, grade, and route events.
+- Colours every route from slow red through medium orange to fast green, using that route's own speed range.
+- Lets the user play, scrub, pan, zoom, recenter, and adjust the map background.
+- Creates an athlete profile and saves routes in **My routes** for later loading.
+- Shows location context, route facts, and a credited real photo near the route when one is available.
 
-- A copper route line with a red-to-green speed glow: red is slower and green is faster relative to the activity's maximum speed.
-- A topographic-style field of blue echoes and turquoise circles inspired by computational design.
-- An elevation profile synchronized with the route playback.
-- A subtle OpenStreetMap background for geographic context.
+## Features I am most proud of
+
+The canvas makes speed changes readable without losing the route shape, and the two large synchronized profiles make elevation and pace easy to compare. I also connected the frontend to a small backend so saved routes and route context are not only a browser-only interaction.
 
 ## How to use it
 
-1. Select **Import GPX** and choose a GPX file.
-2. Choose the activity type: Hiking, Running, or Bike.
-3. Switch between **Speed** and **Grade**, use **Play** or the timeline, and drag/zoom to inspect the route.
-4. Use **Map opacity** or **Center route** to adjust the view.
+1. Open the live app and select **Import GPX**.
+2. Choose Hiking, Running, or Bike.
+3. Explore Speed/Grade, playback, the profiles, and the map.
+4. Create a profile, choose **Save route**, then use **My routes** to load it again.
 
-## Project structure
+## Architecture and local setup
+
+The static frontend lives in `dist/` and is deployed with GitHub Pages. Its API is in the separate public repository [P2-113-backend](https://github.com/diegosecor/P2-113-backend), deployed on Render.
+
+To run the backend locally:
 
 ```text
-dist/index.html  # Page structure
-dist/styles.css  # Visual design and layout
-dist/app.js      # GPX analysis, drawing, import, and interaction
-data/            # Optional GPX test files
-docs/            # Code guide
-prompt_log.md    # AI-use record
+cd backend
+npm start
 ```
 
-## Technology and privacy
+Then serve the `dist/` folder with any static server. For deployed use, `dist/config.js` contains the public backend URL.
 
-This is a dependency-free static web app. GPX files are analysed locally in the browser: there is no backend, login, Strava API, Google Maps API, or API key. OpenStreetMap provides the optional map background. Be mindful that GPX files can contain precise location data.
+## Privacy, APIs, and secrets
 
-## Run locally
-
-Open `dist/index.html` in a modern browser, or serve the `dist/` folder with any static server.
+GPX files are parsed in the browser. The backend receives route data only when a user chooses to save it. OpenStreetMap supplies the map; the backend uses OpenStreetMap reverse geocoding and Wikimedia Commons for nearby credited photographs. No API key is committed to this repository. Optional AI summaries require `OPENAI_API_KEY` and `OPENAI_MODEL` as server environment variables in Render.
 
 ## AI use
 
-The author directed the concept, visual reference, data, and design decisions. Codex supported implementation, debugging, documentation, and code review. See [prompt_log.md](prompt_log.md) for the development record.
+I directed the project concept, visual reference, requirements, and design revisions. I used Codex for implementation support, debugging, UI iteration, and review. The detailed, verbatim development record is in [prompt_log.md](prompt_log.md).
