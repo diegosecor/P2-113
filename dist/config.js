@@ -1,3 +1,7 @@
-// Set this to the public URL of the separately deployed backend, without a trailing slash.
-// Leave it empty for local development with `node backend/server.js`.
+/* =============================================================================
+   DEPLOYMENT CONFIGURATION
+   -----------------------------------------------------------------------------
+   Set the separately deployed backend URL without a trailing slash. Leave this
+   value empty during local development with `node backend/server.js`.
+   ============================================================================= */
 window.PATH_FREQUENCY_API_BASE = "https://p2-113-backend.onrender.com";

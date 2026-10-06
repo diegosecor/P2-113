@@ -16,7 +16,11 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <!-- Interface structure: route canvas, import/save controls, view controls, and hidden desktop fallback panels. -->
+    <!-- =========================================================================
+         APPLICATION SHELL
+         -------------------------------------------------------------------------
+         Route canvas, import/save controls, view controls, and compact panels.
+         ========================================================================= -->
     <main>
       <header>
         <div>
@@ -26,6 +30,7 @@
         <span class="status" id="dataStatus">Route loaded</span>
       </header>
       <section class="workspace">
+        <!-- The visual layer combines the map reference and the Canvas route drawing. -->
         <div class="visual" id="visual">
           <iframe
             class="map-layer"
@@ -42,6 +47,7 @@
               <b id="eventTitle"></b><span id="eventText"></span>
             </div>
           </div>
+          <!-- This card receives place facts, route analysis, and an optional credited photo. -->
           <section class="route-insight" id="routeInsight" aria-live="polite">
             <figure class="route-photo" id="routePhoto" hidden>
               <img id="routePhotoImage" alt="Photo near this route" />
@@ -59,6 +65,7 @@
               <h3>About this place</h3><ul id="placeFacts"></ul>
             </div>
           </section>
+          <!-- Activity import and save controls stay visible over the map. -->
           <div class="library">
             <label class="import-route"
               >Import GPX<input
@@ -81,6 +88,7 @@
           <button id="resetView" class="reset-view" type="button">
             Center route
           </button>
+          <!-- Both charts share the playback position with the main Canvas route. -->
           <section class="elevation-profile" aria-label="Elevation profile">
             <div class="elevation-profile__head">
               <span>Elevation</span><span id="elevationRange"></span>
@@ -159,6 +167,11 @@
         </aside>
       </section>
     </main>
+    <!-- =========================================================================
+         PROFILE AND ROUTE LIBRARY
+         -------------------------------------------------------------------------
+         Dialogs keep profile editing and saved-route browsing out of the map view.
+         ========================================================================= -->
     <section class="profile-card" id="profileCard" aria-label="User profile">
       <div class="profile-card__top"><span class="profile-avatar" id="profileAvatar">PF</span><div><b id="profileName">Guest athlete</b><small id="profileCount">0 saved routes</small></div></div>
       <div class="profile-actions"><button id="routesButton" type="button">My routes</button><button id="profileButton" type="button">Profile</button></div>
@@ -177,6 +190,7 @@
         <div class="saved-routes-list" id="savedRoutesList"></div>
       </section>
     </dialog>
+    <!-- Configuration loads before app.js so the public API URL is available. -->
     <script src="config.js"></script>
     <script src="app.js"></script>
   </body>

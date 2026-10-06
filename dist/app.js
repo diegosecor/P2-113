@@ -1,11 +1,12 @@
-/* ------------------------------------------------------------------------
-         APPLICATION CODE MAP
-         1. Shared state and demo data.
-         2. Route analysis: distance, speed, grade, elevation, and events.
-         3. Canvas rendering: contours, circles, route halo, and elevation chart.
-         4. Import and local storage: browser-only GPX processing and saved routes.
-         5. View interaction: map bounds, zoom, drag, reset, playback, and opacity.
-         ------------------------------------------------------------------------ */
+/* =============================================================================
+   APPLICATION CODE MAP
+   -----------------------------------------------------------------------------
+   1. Shared state and demo data.
+   2. Route analysis: distance, speed, grade, elevation, and events.
+   3. Canvas rendering: contours, circles, route halo, and elevation chart.
+   4. Import and local storage: browser-only GPX processing and saved routes.
+   5. View interaction: map bounds, zoom, drag, reset, playback, and opacity.
+   ============================================================================= */
       // Shared DOM helpers and the two canvas contexts used by the interface.
       const $ = (s) => document.querySelector(s),
         canvas = $("#canvas"),
@@ -152,9 +153,11 @@
         for (let i = 0; i < max; i++) sample.push(points[Math.round(i * step)]);
         return sample;
       }
-      /* ------------------------------------------------------------------------
-         ROUTE ANALYSIS - calculate distance, elevation change, smoothed speed, grade, and events.
-         ------------------------------------------------------------------------ */
+      /* =============================================================================
+         ROUTE ANALYSIS
+         -----------------------------------------------------------------------------
+         Calculate distance, elevation change, smoothed speed, grade, and events.
+         ============================================================================= */
       function analyze(points) {
         let cumulativeDistance = 0;
         let ascent = 0;
@@ -396,9 +399,11 @@
           p,
         }));
       }
-      /* ------------------------------------------------------------------------
-         CANVAS RENDERING - draw contours, circle fields, speed halo, route spine, and active marker.
-         ------------------------------------------------------------------------ */
+      /* =============================================================================
+         CANVAS RENDERING
+         -----------------------------------------------------------------------------
+         Draw contours, circle fields, speed halo, route spine, and active marker.
+         ============================================================================= */
       function draw() {
         let w = canvas.clientWidth,
           h = canvas.clientHeight;
@@ -810,9 +815,11 @@
           if (insight.tags?.length) $("#insightTags").innerHTML = insight.tags.map(x => `<span>${x}</span>`).join("");
         } catch (_) { /* The local route reading is the privacy-preserving fallback. */ }
       }
-      /* ------------------------------------------------------------------------
-         GPX IMPORT AND LOCAL STORAGE - parse a local file and restore saved browser routes.
-         ------------------------------------------------------------------------ */
+      /* =============================================================================
+         GPX IMPORT AND LOCAL STORAGE
+         -----------------------------------------------------------------------------
+         Parse a local file and restore saved browser routes.
+         ============================================================================= */
       $("#file").onchange = async (e) => {
         let f = e.target.files[0];
         if (!f) return;
@@ -930,9 +937,11 @@
         const profile = getProfile();
         if (profile) apiFetch("/api/routes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: profile.id, route }) }).catch(() => {});
       };
-      /* ------------------------------------------------------------------------
-         VIEW INTERACTION - keep the canvas and map together during zoom, drag, reset, and opacity changes.
-         ------------------------------------------------------------------------ */
+      /* =============================================================================
+         VIEW INTERACTION
+         -----------------------------------------------------------------------------
+         Keep the canvas and map together during zoom, drag, reset, and opacity.
+         ============================================================================= */
       const view = $("#visual"),
         syncMap = () =>
           document

@@ -22,6 +22,15 @@ The app is intentionally a dependency-free static website so it is easy to run a
 | `drawElevationChart()` | Draws the complete elevation profile and the playback marker. |
 | `updateMapBounds()` | Builds an OpenStreetMap bounding box from the route's geographic extent. |
 
+## Comment conventions
+
+The source uses two English comment styles so it remains easy to present and review on GitHub:
+
+- **Small notes** begin with `//` in JavaScript or `<!-- -->` in HTML. They explain a nearby decision, fallback, or UI element.
+- **Section notes** use a block with a title and a horizontal separator above and below the description. They introduce each major area of the app, such as route analysis, Canvas rendering, storage, and interaction.
+
+GitHub applies comment colours according to the visitor's selected theme. The separator format makes the larger notes easy to find even when the colour differs.
+
 ## Speed colour rule
 
 For every route point, Path Frequency calculates:
@@ -38,7 +47,7 @@ The chart uses the same analysed GPX points as the route. Its horizontal axis re
 
 ## Import and privacy
 
-The import handler uses `DOMParser` to read GPX track points in the browser. No GPX file is sent to an application server. Choosing **Save route** stores the already sampled route only in the current browser's local storage.
+The import handler uses `DOMParser` to read GPX track points in the browser. A GPX file is not sent during import. Choosing **Save route** stores the sampled route locally and, when the deployed API is available, synchronises it with the selected profile.
 
 ## Explaining the project in a presentation
 
@@ -60,5 +69,5 @@ Small unused colour variables were removed. The remaining CSS is intentionally l
 
 ### Known design trade-offs
 
-- The saved-route buttons are created in JavaScript but are visually hidden in the current minimal desktop composition. Saving is implemented in local storage; exposing a compact saved-route menu is the next UI task if revisiting saved activities becomes a priority.
+- Saved routes are stored locally first and are synchronised with the optional API for a selected profile. The server's file store is suitable for a small demonstration deployment rather than a multi-user production database.
 - The OpenStreetMap iframe is a visual context layer, not a precise GIS overlay. The canvas uses a simpler projection, so the app recalculates bounds on import rather than claiming metre-perfect alignment.
