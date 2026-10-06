@@ -674,9 +674,9 @@
         width: 116%;
         height: 116%;
         border: 0;
-        filter: grayscale(1) invert(0.78) hue-rotate(160deg) brightness(0.62)
-          contrast(1.25);
-        opacity: 0.82;
+        filter: grayscale(.72) invert(.18) hue-rotate(145deg) brightness(1.24)
+          contrast(1.05) saturate(.72);
+        opacity: 0.96;
         pointer-events: none;
         z-index: 0;
         transform-origin: 50% 50%;
@@ -703,9 +703,9 @@
         z-index: 4;
         left: 20px;
         bottom: 82px;
-        width: 238px;
-        padding: 9px 10px 7px;
-        background: #0d1a28dd;
+        width: 360px;
+        padding: 12px 13px 10px;
+        background: #0d1a28e8;
         border: 1px solid #29475b;
         border-radius: 11px;
         backdrop-filter: blur(12px);
@@ -734,15 +734,73 @@
         inset: auto !important;
         display: block;
         width: 100%;
-        height: 70px;
+        height: 118px;
       }
       @media (max-width: 650px) {
         .elevation-profile {
           left: 12px;
           bottom: 76px;
-          width: 210px;
+          width: 260px;
         }
         .elevation-profile canvas {
-          height: 60px;
+          height: 78px;
         }
       }
+
+/* Larger paired route summaries, profile storage, and the top-right contextual reading. */
+.speed-profile {
+  position: absolute;
+  z-index: 4;
+  left: 20px;
+  bottom: 300px;
+  width: 510px;
+  padding: 14px 16px 12px;
+  background: #0d1a28e8;
+  border: 1px solid #29475b;
+  border-radius: 11px;
+  backdrop-filter: blur(12px);
+  pointer-events: none;
+}
+.speed-profile__head { display:flex; justify-content:space-between; margin-bottom:5px; color:#c8dfe8; font:700 .62rem Inter,system-ui,sans-serif; letter-spacing:.09em; text-transform:uppercase; }
+.speed-profile__head span:last-child { color:#b7d4de; font-size:.55rem; letter-spacing:0; }
+.speed-profile canvas { position:static !important; display:block; width:100%; height:165px; }
+.route-insight {
+  position:absolute; z-index:5; top:18px; right:20px; width:min(405px,calc(100vw - 40px));
+  overflow:hidden; padding:15px 17px; background:#f4fbfcef; color:#102230; border:1px solid #a7cbd2;
+  border-radius:16px; box-shadow:0 18px 42px #00172545; backdrop-filter:blur(13px);
+}
+.route-photo { position:relative; overflow:hidden; height:126px; margin:-15px -17px 13px; background:#0e2937; }.route-photo img { width:100%; height:100%; display:block; object-fit:cover; }.route-photo::after { content:""; position:absolute; inset:0; background:linear-gradient(0deg,#071b29bf,transparent 62%); pointer-events:none; }.route-photo figcaption { position:absolute; z-index:1; right:10px; bottom:8px; display:flex; gap:7px; align-items:center; color:#e8ffff; font:700 .58rem Inter,sans-serif; text-shadow:0 1px 4px #001018; }.route-photo a { color:#b6ffff; text-decoration:none; border-bottom:1px solid #b6ffff88; }
+.route-insight__eyebrow { color:#28717e; font:700 .58rem Inter,system-ui,sans-serif; letter-spacing:.14em; text-transform:uppercase; }
+.route-insight h2 { margin:.3rem 0 .35rem; color:#102230; text-shadow:none; font-size:1rem; line-height:1.2; }
+.route-insight p { margin:0; color:#46606a; font-size:.76rem; line-height:1.45; }
+.insight-tags { display:flex; flex-wrap:wrap; gap:5px; margin-top:9px; }
+.insight-tags span { padding:3px 6px; border-radius:999px; background:#dceff0; color:#23636c; font:700 .59rem Inter,system-ui,sans-serif; }
+.insight-detail { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:13px; padding-top:11px; border-top:1px solid #c6dadd; }
+.insight-detail h3 { margin:0 0 6px; color:#25717c; font:800 .59rem Inter,system-ui,sans-serif; letter-spacing:.09em; text-transform:uppercase; }
+.insight-detail ul { display:grid; gap:6px; margin:0; padding:0; list-style:none; }
+.insight-detail li { color:#47616b; font-size:.66rem; line-height:1.36; }.insight-detail b { color:#193c48; font-weight:800; }
+.place-context { margin-top:12px; padding-top:11px; border-top:1px solid #c6dadd; }
+.place-context h3 { margin:0 0 6px; color:#25717c; font:800 .59rem Inter,system-ui,sans-serif; letter-spacing:.09em; text-transform:uppercase; }
+.place-context ul { display:grid; grid-template-columns:1fr 1fr; gap:6px 14px; margin:0; padding:0; list-style:none; }
+.place-context li { color:#47616b; font-size:.66rem; line-height:1.36; }
+.profile-card { position:absolute; z-index:6; top:18px; right:445px; display:flex; align-items:center; gap:12px; padding:8px 10px; background:linear-gradient(135deg,#0c2233ed,#142f3bec); border:1px solid #497587; border-radius:14px; box-shadow:0 10px 25px #00111c55; backdrop-filter:blur(12px); }
+.profile-card__top { display:flex; align-items:center; gap:7px; }
+.profile-avatar { width:28px; height:28px; display:grid; place-items:center; border-radius:50%; color:#09313b; background:#63e9ef; font:800 .57rem Inter,sans-serif; }
+.profile-card b,.profile-card small { display:block; max-width:96px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.profile-card b { font-size:.66rem; color:#e1f1f4; }.profile-card small { margin-top:2px; font-size:.56rem; color:#90acb6; }
+.profile-actions { display:flex; gap:5px; }.profile-card button { padding:.42rem .56rem; font-size:.62rem; background:#173d50; color:#d7eff3; border-color:#427c92; }.profile-card #routesButton { background:#54d3d7; color:#072b35; border-color:#99ffff; }
+.app-dialog { width:min(640px,calc(100vw - 28px)); max-height:calc(100vh - 28px); padding:0; color:#dcecf0; background:transparent; border:0; border-radius:18px; box-shadow:0 24px 80px #000b; }.app-dialog::backdrop { background:#020a12a8; backdrop-filter:blur(5px); }
+.dialog-card { padding:22px; background:linear-gradient(150deg,#122c3d,#0b1420); border:1px solid #3b6374; border-radius:18px; }.dialog-heading { display:flex; justify-content:space-between; gap:16px; margin-bottom:20px; }.dialog-kicker { color:#70e7e6; font:800 .61rem Inter,sans-serif; letter-spacing:.14em; }.dialog-heading h2 { margin:5px 0 4px; color:#f1ffff; font-size:1.25rem; }.dialog-heading p { margin:0; color:#9bb7c0; font-size:.76rem; line-height:1.4; }.dialog-close { width:32px; height:32px; padding:0; font-size:1.35rem; line-height:1; background:#1a3a4b; }
+.dialog-card label { display:grid; gap:6px; margin:13px 0; color:#cfe8ec; font:700 .72rem Inter,sans-serif; }.dialog-card label small { color:#8baab4; font-weight:500; }.dialog-card input { width:100%; padding:.72rem .78rem; color:#edffff; background:#07131e; border:1px solid #40697b; border-radius:9px; font:inherit; }.dialog-card input:focus { outline:2px solid #68e6e7; border-color:#68e6e7; }.dialog-primary { width:100%; margin-top:8px; padding:.75rem; background:#63e9ef; color:#06202a; border-color:#b1ffff; font-weight:800; }
+.routes-card { min-height:330px; }.saved-routes-list { display:grid; gap:9px; max-height:55vh; overflow:auto; padding-right:4px; }.saved-route { display:grid; grid-template-columns:auto 1fr auto; gap:12px; align-items:center; padding:12px; background:#0a1a27; border:1px solid #294b5d; border-radius:12px; }.saved-route__sport { padding:5px 7px; border-radius:7px; background:#164358; color:#80edeb; font:800 .6rem Inter,sans-serif; text-transform:uppercase; }.saved-route__body h3 { margin:0 0 3px; color:#e6f8fa; font-size:.86rem; }.saved-route__body p { margin:0; color:#92b0ba; font-size:.68rem; }.saved-route button { background:#22566b; border-color:#4c95a7; font-size:.68rem; }.empty-routes { display:grid; place-items:center; gap:8px; min-height:180px; padding:20px; text-align:center; color:#cfe5e8; border:1px dashed #41697a; border-radius:12px; }.empty-routes span { color:#8caab4; font-size:.75rem; }
+/* Override the original compact elevation card so both bottom profiles have equal visual importance. */
+.elevation-profile { width:510px; bottom:88px; padding:14px 16px 12px; }
+.elevation-profile canvas { height:165px; }
+/* A large at-a-glance speedometer that remains readable over the map. */
+.speedo { right:24px; bottom:78px; width:150px; height:150px; border-radius:50%; border-width:2px; background:#0b1723f2; box-shadow:0 14px 38px #0008; }
+.speedo:before { inset:13px; border-width:4px; box-shadow:0 0 16px #2ddfe560; }
+.speedo strong { font-size:1.85rem; }.speedo span { font-size:.58rem; letter-spacing:.06em; }
+.reset-view { right:48px; bottom:248px; }
+.legend { right:190px; bottom:28px; }
+@media (max-width:900px) { .profile-card { right:20px; top:390px; }.route-insight { top:18px; }.speed-profile { bottom:330px; width:440px; }.elevation-profile { width:440px; } }
+@media (max-width:650px) { .route-insight { top:144px; width:calc(100vw - 24px); right:12px; }.profile-card { top:87px; right:12px; }.speed-profile { left:12px; bottom:272px; width:290px; }.elevation-profile { left:12px; bottom:82px; width:290px; }.speed-profile canvas,.elevation-profile canvas { height:95px; }.insight-detail,.place-context ul { grid-template-columns:1fr; gap:10px; }.speedo { width:104px; height:104px; right:12px; bottom:76px; }.speedo:before { inset:9px; border-width:3px; }.speedo strong { font-size:1.25rem; }.reset-view { right:22px; bottom:190px; }.legend { display:none; } }
