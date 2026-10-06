@@ -11,7 +11,16 @@
         canvas = $("#canvas"),
         ctx = canvas.getContext("2d"),
         elevationCanvas = $("#elevationChart"),
-        elevationCtx = elevationCanvas.getContext("2d");
+        elevationCtx = elevationCanvas.getContext("2d"),
+        speedCanvas = $("#speedChart"),
+        speedCtx = speedCanvas.getContext("2d");
+      // A deployed frontend reads its API address from config.js; localhost keeps the convenient relative API.
+      const apiBase = (window.PATH_FREQUENCY_API_BASE || "").replace(/\/$/, "");
+      const apiFetch = (endpoint, options) => {
+        const runningLocally = ["localhost", "127.0.0.1"].includes(location.hostname);
+        if (!apiBase && !runningLocally) return Promise.reject(new Error("Backend URL is not configured"));
+        return fetch(`${apiBase}${endpoint}`, options);
+      };
       let mode = "speed",
         progress = 0,
         playing = false,
@@ -205,6 +214,8 @@
         const steepestDescent = smoothedPoints.reduce((current, point) =>
           point.gradeS < current.gradeS ? point : current,
         );
+        const minSpeed = slowest.speedS;
+        const maxSpeed = fastest.speedS;
 
         return {
           points: smoothedPoints,
@@ -215,6 +226,8 @@
           maxEle: Math.max(...points.map((point) => point.ele)),
           start: points[0].time,
           end: points.at(-1).time,
+          minSpeed,
+          maxSpeed,
           events: [
             {
               p: fastest,
@@ -257,10 +270,10 @@
           "−" + Math.round(a.down).toLocaleString("en-US") + " m";
       }
       // Map every speed to a continuous red-to-green scale, normalised by this activity's maximum speed.
-      function speedScale(speed, maxSpeed) {
+      function speedScale(speed, maxSpeed, minSpeed = 0) {
         let value = Math.max(
           0,
-          Math.min(1, maxSpeed > 0 ? speed / maxSpeed : 0),
+          Math.min(1, (speed - minSpeed) / (maxSpeed - minSpeed || 1)),
         );
         return { value, hue: Math.round(4 + 136 * value) };
       }
@@ -319,6 +332,34 @@
         $("#elevationRange").textContent =
           `${Math.round(min).toLocaleString("en-US")}–${Math.round(max).toLocaleString("en-US")} m`;
       }
+      // Draw a matching, larger speed profile. Its red/orange/green line uses each route's own min/max speed.
+      function drawSpeedChart() {
+        let w = speedCanvas.clientWidth, h = speedCanvas.clientHeight;
+        if (!w || !h) return;
+        let d = Math.min(1.5, devicePixelRatio), pts = analysis.points, pad = 4,
+          min = analysis.minSpeed, max = analysis.maxSpeed;
+        speedCanvas.width = Math.round(w * d);
+        speedCanvas.height = Math.round(h * d);
+        speedCtx.setTransform(d, 0, 0, d, 0, 0);
+        speedCtx.clearRect(0, 0, w, h);
+        const x = (i) => pad + (i / Math.max(1, pts.length - 1)) * (w - pad * 2);
+        const y = (p) => h - pad - ((p.speedS - min) / (max - min || 1)) * (h - pad * 2);
+        speedCtx.beginPath();
+        pts.forEach((p, i) => i ? speedCtx.lineTo(x(i), y(p)) : speedCtx.moveTo(x(i), y(p)));
+        speedCtx.lineTo(w - pad, h - pad); speedCtx.lineTo(pad, h - pad); speedCtx.closePath();
+        let fill = speedCtx.createLinearGradient(0, 0, 0, h);
+        fill.addColorStop(0, "rgba(88,222,111,.38)"); fill.addColorStop(.5, "rgba(255,157,55,.18)"); fill.addColorStop(1, "rgba(239,70,70,.04)");
+        speedCtx.fillStyle = fill; speedCtx.fill();
+        for (let i = 1; i < pts.length; i++) {
+          const tone = speedScale(pts[i].speedS, max, min);
+          speedCtx.beginPath(); speedCtx.moveTo(x(i - 1), y(pts[i - 1])); speedCtx.lineTo(x(i), y(pts[i]));
+          speedCtx.strokeStyle = `hsl(${tone.hue}, 88%, 58%)`; speedCtx.lineWidth = 2.25; speedCtx.stroke();
+        }
+        let current = Math.min(pts.length - 1, Math.round(progress * (pts.length - 1)));
+        speedCtx.beginPath(); speedCtx.arc(x(current), y(pts[current]), 3.5, 0, Math.PI * 2);
+        speedCtx.fillStyle = "#fff"; speedCtx.fill();
+        $("#speedRange").textContent = `${min.toFixed(1)}–${max.toFixed(1)} km/h`;
+      }
       // Match the canvas resolution to the visual container and the device pixel ratio.
       function resize() {
         let r = canvas.parentElement.getBoundingClientRect(),
@@ -367,7 +408,8 @@
           n = pos.length,
           eMin = analysis.minEle,
           eMax = analysis.maxEle,
-          maxSpeed = Math.max(0.1, ...analysis.points.map((p) => p.speedS));
+          maxSpeed = analysis.maxSpeed,
+          minSpeed = analysis.minSpeed;
         ctx.fillStyle = "rgba(3,6,13,.42)";
         ctx.fillRect(0, 0, w, h);
         // Turquoise topographic samples sit perpendicular to the route.
@@ -383,8 +425,10 @@
             e = (q.p.ele - eMin) / (eMax - eMin || 1);
           for (let side of [-1, 1]) {
             let off = 18 + e * 44;
-            ctx.strokeStyle = "rgba(12,190,165,.48)";
-            ctx.lineWidth = 0.8;
+            ctx.strokeStyle = "rgba(71,239,215,.88)";
+            ctx.lineWidth = 1.55;
+            ctx.shadowColor = "rgba(41,235,217,.7)";
+            ctx.shadowBlur = 8;
             ctx.beginPath();
             ctx.ellipse(
               q.x + nx * off * side,
@@ -397,7 +441,8 @@
             );
             ctx.stroke();
             if (i % 14 === 0) {
-              ctx.strokeStyle = "rgba(137,219,194,.18)";
+              ctx.strokeStyle = "rgba(162,255,235,.65)";
+              ctx.lineWidth = 1.15;
               ctx.beginPath();
               ctx.moveTo(q.x, q.y);
               ctx.lineTo(q.x + nx * off * side, q.y + ny * off * side);
@@ -418,10 +463,13 @@
               y = q.y + Math.sin(i * 0.09 + level) * offset + dir * e * 10;
             i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
           });
-          ctx.strokeStyle = `rgba(7,82,143,${0.15 + level * 0.014})`;
-          ctx.lineWidth = level % 4 === 0 ? 1.4 : 0.8;
+          ctx.strokeStyle = `rgba(45,180,246,${0.3 + level * 0.028})`;
+          ctx.lineWidth = level % 4 === 0 ? 2.15 : 1.25;
+          ctx.shadowColor = "rgba(35,171,255,.48)";
+          ctx.shadowBlur = 7;
           ctx.stroke();
         }
+        ctx.shadowBlur = 0;
         // Circular speed samples use the same 0-to-maximum-speed colour scale as the route halo.
         // Protect the average-speed display when a GPX has equal or invalid timestamps.
         let durationSeconds = Math.max(
@@ -432,7 +480,7 @@
           fieldStep = Math.max(1, Math.floor(n / 64));
         for (let i = 5; i < n - 5; i += fieldStep) {
           let q = pos[i],
-            tone = speedScale(q.p.speedS, maxSpeed),
+            tone = speedScale(q.p.speedS, maxSpeed, minSpeed),
             extreme = Math.abs(tone.value - 0.5) * 2,
             rings = extreme > 0.3 ? 3 : 1,
             r = 5 + tone.value * 15;
@@ -460,7 +508,7 @@
         for (let i = haloStep; i < n; i += haloStep) {
           let q = pos[i],
             p = pos[i - haloStep],
-            tone = speedScale(q.p.speedS, maxSpeed),
+            tone = speedScale(q.p.speedS, maxSpeed, minSpeed),
             strength = 0.055 + tone.value * 0.32;
           for (let layer = 5; layer >= 1; layer--) {
             ctx.strokeStyle = `hsla(${tone.hue},88%,58%,${strength / (layer * 2.35)})`;
@@ -471,13 +519,28 @@
             ctx.stroke();
           }
         }
-        ctx.lineWidth = 2.7;
+        // High-contrast pace markers: red is the activity's slow end, orange is middle, green is fastest.
+        if (mode === "speed") {
+          const markerStep = Math.max(2, Math.floor(n / 95));
+          for (let i = 1; i < n; i++) {
+            const q = pos[i], prev = pos[i - 1], tone = speedScale(q.p.speedS, maxSpeed, minSpeed);
+            ctx.strokeStyle = `hsl(${tone.hue}, 92%, 56%)`;
+            ctx.lineWidth = 3.8 + tone.value * 2.2;
+            ctx.beginPath(); ctx.moveTo(prev.x, prev.y); ctx.lineTo(q.x, q.y); ctx.stroke();
+            if (i % markerStep === 0) {
+              ctx.beginPath(); ctx.arc(q.x, q.y, 3.4 + tone.value * 2.3, 0, Math.PI * 2);
+              ctx.fillStyle = `hsl(${tone.hue}, 94%, 57%)`; ctx.fill();
+              ctx.strokeStyle = "rgba(255,255,255,.78)"; ctx.lineWidth = .75; ctx.stroke();
+            }
+          }
+        }
+        ctx.lineWidth = 1.25;
         if (mode === "speed") {
           ctx.beginPath();
           pos.forEach((q, i) =>
             i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y),
           );
-          ctx.strokeStyle = "#f07a2f";
+          ctx.strokeStyle = "rgba(255,239,220,.54)";
           ctx.stroke();
         } else {
           for (let i = 1; i < n; i++) {
@@ -521,6 +584,7 @@
         );
         $("#scrubber").value = progress;
         drawElevationChart();
+        drawSpeedChart();
       }
       // Show a short label only while playback is close to a detected route event.
       function updateEvent(p) {
@@ -537,17 +601,18 @@
       }
       // Build an English legend that reflects the current activity's maximum speed.
       function renderLegend() {
-        let maxSpeed = Math.max(0.1, ...analysis.points.map((p) => p.speedS)),
+        let maxSpeed = analysis.maxSpeed,
+          minSpeed = analysis.minSpeed,
           items =
             mode === "speed"
               ? [
-                  [`hsl(${speedScale(0, maxSpeed).hue},88%,58%)`, "0 km/h"],
+                  [`hsl(${speedScale(minSpeed, maxSpeed, minSpeed).hue},88%,58%)`, `${minSpeed.toFixed(1)} km/h slow`],
                   [
-                    `hsl(${speedScale(maxSpeed / 2, maxSpeed).hue},88%,58%)`,
-                    "50% of max",
+                    `hsl(${speedScale((maxSpeed + minSpeed) / 2, maxSpeed, minSpeed).hue},88%,58%)`,
+                    "medium pace",
                   ],
                   [
-                    `hsl(${speedScale(maxSpeed, maxSpeed).hue},88%,58%)`,
+                    `hsl(${speedScale(maxSpeed, maxSpeed, minSpeed).hue},88%,58%)`,
                     `${maxSpeed.toFixed(1)} km/h max`,
                   ],
                 ]
@@ -638,6 +703,113 @@
             bbox +
             "&layer=mapnik";
       }
+      // A profile is kept locally for the static build and is also sent to the optional API when it is available.
+      function getProfile() {
+        return JSON.parse(localStorage.getItem("pathFrequencyProfile") || "null");
+      }
+      const getSavedRoutes = () => JSON.parse(localStorage.getItem("pathFrequencyRoutes") || "[]");
+      const escapeHtml = (value) => String(value || "").replace(/[&<>'"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[c]);
+      function updateProfileCard() {
+        const profile = getProfile();
+        const saved = getSavedRoutes();
+        $("#profileName").textContent = profile?.name || "Guest athlete";
+        $("#profileAvatar").textContent = profile?.name ? profile.name.slice(0, 2).toUpperCase() : "PF";
+        $("#profileCount").textContent = `${saved.length} saved route${saved.length === 1 ? "" : "s"}`;
+        $("#profileButton").textContent = profile?.name ? "Edit profile" : "Create profile";
+      }
+      $("#profileButton").onclick = () => {
+        const existing = getProfile();
+        $("#profileNameInput").value = existing?.name || "";
+        $("#profileEmailInput").value = existing?.email || "";
+        $("#profileDialog").showModal();
+      };
+      $("#profileForm").onsubmit = async (e) => {
+        e.preventDefault();
+        const existing = getProfile();
+        const profile = { id: existing?.id || crypto.randomUUID(), name: $("#profileNameInput").value.trim(), email: $("#profileEmailInput").value.trim() };
+        if (!profile.name) return;
+        localStorage.setItem("pathFrequencyProfile", JSON.stringify(profile));
+        updateProfileCard();
+        $("#profileDialog").close();
+        try {
+          await apiFetch("/api/profiles", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(profile) });
+          // Attach routes saved before the profile was created, so the local library and backend stay aligned.
+          await Promise.all(getSavedRoutes().map((route) => apiFetch("/api/routes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: profile.id, route }) })));
+          await syncRoutesFromBackend();
+        } catch (_) { /* Direct static hosting remains fully usable with local storage. */ }
+      };
+      document.querySelectorAll("[data-close]").forEach((button) => button.onclick = () => $("#" + button.dataset.close).close());
+      function renderInsightDetails(place) {
+        const p = analysis.points, mid = p[Math.floor(p.length / 2)], sport = $("#sport").value;
+        const elevationSpan = Math.round(analysis.maxEle - analysis.minEle);
+        const ascent = Math.round(analysis.up);
+        const character = elevationSpan > 700 || ascent > 900 ? "mountainous" : elevationSpan > 250 ? "rolling" : "mostly flat";
+        const distance = analysis.total / 1000;
+        const duration = Math.max(1, (analysis.end - analysis.start) / 1000);
+        const average = (analysis.total / duration) * 3.6;
+        const floors = Math.round(ascent / 3);
+        const spread = analysis.maxSpeed - analysis.minSpeed;
+        $("#insightPlace").textContent = place || `Route near ${mid.lat.toFixed(3)}, ${mid.lon.toFixed(3)}`;
+        $("#insightText").textContent = `${sport} route with ${character} terrain. The information below is derived from the uploaded GPX.`;
+        $("#insightTags").innerHTML = [`${sport}`, `${distance.toFixed(1)} km`, `${analysis.maxSpeed.toFixed(1)} km/h max`].map(x => `<span>${x}</span>`).join("");
+        $("#insightFacts").innerHTML = [
+          `<b>${distance.toFixed(1)} km</b> of total distance`,
+          `<b>${ascent.toLocaleString("en-US")} m</b> of accumulated ascent`,
+          `Altitude range: <b>${Math.round(analysis.minEle).toLocaleString("en-US")}–${Math.round(analysis.maxEle).toLocaleString("en-US")} m</b>`,
+          `Pace: <b>${analysis.minSpeed.toFixed(1)}–${analysis.maxSpeed.toFixed(1)} km/h</b> · average ${average.toFixed(1)} km/h`
+        ].map(x => `<li>${x}</li>`).join("");
+        $("#insightCuriosities").innerHTML = [
+          `The climbing total is roughly equivalent to <b>${floors.toLocaleString("en-US")} floors</b>.`,
+          elevationSpan > 700 ? `The route crosses a <b>${elevationSpan.toLocaleString("en-US")} m vertical band</b>, so conditions may change noticeably along the way.` : `Its <b>${elevationSpan.toLocaleString("en-US")} m elevation band</b> makes the terrain easier to read from the profile.`,
+          spread > 12 ? `There is a <b>${spread.toFixed(1)} km/h pace spread</b>; the colored line highlights where effort or terrain changed most.` : `The pace is comparatively steady: only <b>${spread.toFixed(1)} km/h</b> separates the route extremes.`,
+          `The highest recorded point is <b>${Math.round(analysis.maxEle).toLocaleString("en-US")} m</b>; use the profiles to locate it in the route.`
+        ].map(x => `<li>${x}</li>`).join("");
+        // Regional context is displayed only for the high-Andean Los Nevados / Quindío area,
+        // rather than making geographic claims about every uploaded GPX.
+        const inLosNevadosRegion = mid.lat > 4.45 && mid.lat < 4.95 && mid.lon > -75.68 && mid.lon < -75.25;
+        const placeContext = $("#placeContext");
+        placeContext.hidden = !inLosNevadosRegion;
+        if (inLosNevadosRegion) {
+          $("#placeFacts").innerHTML = [
+            `This route is in the <b>high-Andean landscape of Quindío and Los Nevados</b>, one of Colombia's highest mountain regions.`,
+            `Los Nevados National Natural Park was <b>officially protected in 1974</b> and spans parts of Quindío, Caldas, Risaralda and Tolima.`,
+            `The upper ecosystems include <b>páramo</b>, a water-regulating landscape where <b>frailejones</b> are emblematic plants.`,
+            `Your recorded high point is <b>${Math.round(analysis.maxEle).toLocaleString("en-US")} m</b>, which explains the rapid terrain and weather changes hikers often prepare for in this region.`
+          ].map(x => `<li>${x}</li>`).join("");
+        }
+      }
+      function localInsight() {
+        renderInsightDetails();
+      }
+      async function updateRoutePhoto(point) {
+        const photo = $("#routePhoto"), image = $("#routePhotoImage"), credit = $("#routePhotoCredit");
+        photo.hidden = true;
+        image.removeAttribute("src");
+        try {
+          const response = await apiFetch(`/api/route-photo?lat=${encodeURIComponent(point.lat)}&lon=${encodeURIComponent(point.lon)}`);
+          if (!response.ok) return;
+          const result = await response.json();
+          if (!result?.url || !/^https:\/\//.test(result.url)) return;
+          image.src = result.url;
+          image.alt = result.title || "Photo near this route";
+          credit.href = result.pageUrl || "https://commons.wikimedia.org/";
+          credit.textContent = `${result.author}${result.license ? ` · ${result.license}` : ""}`;
+          photo.hidden = false;
+        } catch (_) { /* Do not substitute an unrelated image when no real local photo is available. */ }
+      }
+      async function updateRouteInsight() {
+        localInsight();
+        const p = analysis.points[Math.floor(analysis.points.length / 2)];
+        updateRoutePhoto(p);
+        try {
+          const response = await apiFetch("/api/route-insight", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ lat: p.lat, lon: p.lon, sport: $("#sport").value, distanceKm: analysis.total / 1000, ascent: analysis.up, minElevation: analysis.minEle, maxElevation: analysis.maxEle, minSpeed: analysis.minSpeed, maxSpeed: analysis.maxSpeed }) });
+          if (!response.ok) return;
+          const insight = await response.json();
+          renderInsightDetails(insight.place);
+          if (insight.description) $("#insightText").textContent = insight.description;
+          if (insight.tags?.length) $("#insightTags").innerHTML = insight.tags.map(x => `<span>${x}</span>`).join("");
+        } catch (_) { /* The local route reading is the privacy-preserving fallback. */ }
+      }
       /* ------------------------------------------------------------------------
          GPX IMPORT AND LOCAL STORAGE - parse a local file and restore saved browser routes.
          ------------------------------------------------------------------------ */
@@ -674,57 +846,89 @@
           updateMapBounds();
           $("#routeName").textContent = f.name.replace(/\.gpx$/i, "");
           $("#dataStatus").textContent = "Route loaded";
+          updateRouteInsight();
           draw();
         } catch (err) {
           $("#dataStatus").textContent = "Could not read GPX";
           console.error(err);
         }
       };
-      // Read and restore locally saved activities without sending GPX data to a server.
+      // Read locally cached routes and render a usable route library. The server copy is synchronized on opening it.
+      function loadSavedRoute(r) {
+        if (!r?.points?.length) return;
+        data = r.points.map((p) => ({ ...p, time: new Date(p.time) }));
+        analysis = analyze(data);
+        progress = 0; zoom = 1; pan = { x: 0, y: 0 };
+        syncMap(); updateMapBounds();
+        $("#routeName").textContent = r.name;
+        $("#sport").value = r.sport || "Hiking";
+        setStats(); renderLegend(); updateRouteInsight(); draw();
+        $("#routesDialog").close();
+        $("#dataStatus").textContent = "Saved route loaded";
+      }
       function renderLibrary() {
-        let saved = JSON.parse(
-          localStorage.getItem("pathFrequencyRoutes") || "[]",
-        );
+        let saved = getSavedRoutes();
         $("#routeDots").innerHTML = saved
           .map(
             (r, i) =>
-              `<button type="button" data-saved="${i}">${r.sport} · ${r.name}</button>`,
+              `<button type="button" data-saved="${i}">${escapeHtml(r.sport)} · ${escapeHtml(r.name)}</button>`,
           )
           .join("");
+        $("#savedRoutesList").innerHTML = saved.length ? saved.map((r, i) => {
+          const stats = r.stats || {};
+          const date = r.savedAt ? new Date(r.savedAt).toLocaleDateString() : "Saved in this browser";
+          return `<article class="saved-route"><div class="saved-route__sport">${escapeHtml(r.sport || "Activity")}</div><div class="saved-route__body"><h3>${escapeHtml(r.name || "Untitled route")}</h3><p>${date} · ${stats.distance ? `${stats.distance} km` : `${r.points?.length || 0} route points`} ${stats.ascent ? `· ${stats.ascent} m ascent` : ""}</p></div><button type="button" data-load-route="${i}">Open route</button></article>`;
+        }).join("") : `<div class="empty-routes"><b>No saved routes yet</b><span>Import a GPX, choose the activity, then select Save route.</span></div>`;
         document.querySelectorAll("[data-saved]").forEach(
-          (b) =>
-            (b.onclick = () => {
-              let r = saved[+b.dataset.saved];
-              data = r.points.map((p) => ({ ...p, time: new Date(p.time) }));
-              analysis = analyze(data);
-              progress = 0;
-              zoom = 1;
-              pan = { x: 0, y: 0 };
-              syncMap();
-              updateMapBounds();
-              $("#routeName").textContent = r.name;
-              setStats();
-              renderLegend();
-              draw();
-            }),
+          (b) => (b.onclick = () => loadSavedRoute(saved[+b.dataset.saved])),
         );
+        document.querySelectorAll("[data-load-route]").forEach((b) => (b.onclick = () => loadSavedRoute(saved[+b.dataset.loadRoute])));
       }
+      async function syncRoutesFromBackend() {
+        const profile = getProfile();
+        if (!profile) return;
+        try {
+          const response = await apiFetch(`/api/users/${encodeURIComponent(profile.id)}/routes`);
+          if (!response.ok) return;
+          const remote = await response.json();
+          const merged = [...remote, ...getSavedRoutes()].reduce((unique, route) => unique.has(route.id) ? unique : unique.set(route.id, route), new Map());
+          localStorage.setItem("pathFrequencyRoutes", JSON.stringify([...merged.values()].slice(0, 30)));
+          renderLibrary(); updateProfileCard();
+        } catch (_) { /* Local cache is still available when the API is offline. */ }
+      }
+      $("#routesButton").onclick = async () => {
+        renderLibrary();
+        $("#routesDialog").showModal();
+        await syncRoutesFromBackend();
+      };
       $("#saveRoute").onclick = () => {
-        let saved = JSON.parse(
-            localStorage.getItem("pathFrequencyRoutes") || "[]",
-          ),
+        if (!getProfile()) {
+          $("#profileNameInput").value = "";
+          $("#profileEmailInput").value = "";
+          $("#profileDialog").showModal();
+          $("#dataStatus").textContent = "Create your profile to save routes";
+          return;
+        }
+        let saved = getSavedRoutes(),
           name = $("#routeName").textContent || "Untitled route";
-        saved.unshift({
+        const route = {
+          id: crypto.randomUUID(),
           name,
           sport: $("#sport").value,
+          savedAt: new Date().toISOString(),
+          stats: { distance: (analysis.total / 1000).toFixed(1), ascent: Math.round(analysis.up) },
           points: data.map((p) => ({ ...p, time: p.time.toISOString() })),
-        });
+        };
+        saved.unshift(route);
         localStorage.setItem(
           "pathFrequencyRoutes",
-          JSON.stringify(saved.slice(0, 8)),
+          JSON.stringify(saved.slice(0, 30)),
         );
         renderLibrary();
+        updateProfileCard();
         $("#dataStatus").textContent = "Route saved";
+        const profile = getProfile();
+        if (profile) apiFetch("/api/routes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: profile.id, route }) }).catch(() => {});
       };
       /* ------------------------------------------------------------------------
          VIEW INTERACTION - keep the canvas and map together during zoom, drag, reset, and opacity changes.
@@ -790,10 +994,13 @@
       setStats();
       renderLegend();
       renderLibrary();
+      updateProfileCard();
       resize();
       updateMapBounds();
+      updateRouteInsight();
       draw();
       document.getElementById("mapOpacity").addEventListener("input", (e) => {
         const map = document.querySelector(".map-layer");
         if (map) map.style.opacity = (Number(e.target.value) / 100).toString();
       });
+      $("#sport").addEventListener("change", updateRouteInsight);

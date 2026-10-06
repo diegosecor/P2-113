@@ -42,6 +42,23 @@
               <b id="eventTitle"></b><span id="eventText"></span>
             </div>
           </div>
+          <section class="route-insight" id="routeInsight" aria-live="polite">
+            <figure class="route-photo" id="routePhoto" hidden>
+              <img id="routePhotoImage" alt="Photo near this route" />
+              <figcaption><span>Photo near route</span><a id="routePhotoCredit" target="_blank" rel="noopener noreferrer">Wikimedia Commons</a></figcaption>
+            </figure>
+            <div class="route-insight__eyebrow">Route intelligence</div>
+            <h2 id="insightPlace">Analysing route…</h2>
+            <p id="insightText">Loading terrain and activity insights.</p>
+            <div class="insight-tags" id="insightTags"></div>
+            <div class="insight-detail">
+              <div><h3>Route reading</h3><ul id="insightFacts"></ul></div>
+              <div><h3>Route curiosities</h3><ul id="insightCuriosities"></ul></div>
+            </div>
+            <div class="place-context" id="placeContext" hidden>
+              <h3>About this place</h3><ul id="placeFacts"></ul>
+            </div>
+          </section>
           <div class="library">
             <label class="import-route"
               >Import GPX<input
@@ -73,14 +90,20 @@
               aria-label="Elevation profile chart"
             ></canvas>
           </section>
+          <section class="speed-profile" aria-label="Speed profile">
+            <div class="speed-profile__head">
+              <span>Speed</span><span id="speedRange"></span>
+            </div>
+            <canvas id="speedChart" aria-label="Speed profile chart"></canvas>
+          </section>
           <label class="map-opacity"
-            >Map opacity
+            >Background light
             <input
               id="mapOpacity"
               type="range"
-              min="0"
+              min="15"
               max="100"
-              value="82"
+              value="100"
               aria-label="Map background opacity"
           /></label>
           <div class="controls">
@@ -136,6 +159,25 @@
         </aside>
       </section>
     </main>
+    <section class="profile-card" id="profileCard" aria-label="User profile">
+      <div class="profile-card__top"><span class="profile-avatar" id="profileAvatar">PF</span><div><b id="profileName">Guest athlete</b><small id="profileCount">0 saved routes</small></div></div>
+      <div class="profile-actions"><button id="routesButton" type="button">My routes</button><button id="profileButton" type="button">Profile</button></div>
+    </section>
+    <dialog class="app-dialog" id="profileDialog">
+      <form id="profileForm" class="dialog-card">
+        <div class="dialog-heading"><div><span class="dialog-kicker">ATHLETE ACCOUNT</span><h2>Your profile</h2><p>Routes you save are associated with this profile.</p></div><button class="dialog-close" type="button" data-close="profileDialog" aria-label="Close">×</button></div>
+        <label>Display name<input id="profileNameInput" name="name" required maxlength="42" placeholder="e.g. Diego Secor" /></label>
+        <label>Email <small>Optional · only stored on your local backend</small><input id="profileEmailInput" name="email" type="email" maxlength="100" placeholder="you@example.com" /></label>
+        <button class="dialog-primary" type="submit">Save profile</button>
+      </form>
+    </dialog>
+    <dialog class="app-dialog" id="routesDialog">
+      <section class="dialog-card routes-card">
+        <div class="dialog-heading"><div><span class="dialog-kicker">ROUTE LIBRARY</span><h2>Your saved routes</h2><p>Load a route to explore its map, profiles, and context again.</p></div><button class="dialog-close" type="button" data-close="routesDialog" aria-label="Close">×</button></div>
+        <div class="saved-routes-list" id="savedRoutesList"></div>
+      </section>
+    </dialog>
+    <script src="config.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
