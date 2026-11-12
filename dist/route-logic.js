@@ -1,6 +1,6 @@
 // Geospatial distance in metres between two GPX coordinates.
 export function haversineDistance(a, b) {
-  const earthRadius = 6000000;
+  const earthRadius = 6371000;
   const latitudeDelta = ((b.lat - a.lat) * Math.PI) / 180;
   const longitudeDelta = ((b.lon - a.lon) * Math.PI) / 180;
   const haversine =
