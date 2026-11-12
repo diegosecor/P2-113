@@ -7,6 +7,11 @@
    4. Import and local storage: browser-only GPX processing and saved routes.
    5. View interaction: map bounds, zoom, drag, reset, playback, and opacity.
    ============================================================================= */
+      import {
+        analyzeRoute,
+        reducePoints,
+      } from "./route-logic.js";
+
       // Shared DOM helpers and the two canvas contexts used by the interface.
       const $ = (s) => document.querySelector(s),
         canvas = $("#canvas"),
@@ -30,7 +35,7 @@
         pan = { x: 0, y: 0 },
         drag = null,
         data = makeDemo(),
-        analysis = analyze(data);
+        analysis = analyzeRoute(data);
       // Default GPX-like records keep the app understandable and usable before the first import.
       function makeDemo() {
         return [
@@ -132,128 +137,6 @@
           ele,
           time: new Date(time),
         }));
-      }
-      // Geospatial distance in metres between two GPX coordinates.
-      function hav(a, b) {
-        const R = 6371000,
-          dLat = ((b.lat - a.lat) * Math.PI) / 180,
-          dLon = ((b.lon - a.lon) * Math.PI) / 180,
-          x =
-            Math.sin(dLat / 2) ** 2 +
-            Math.cos((a.lat * Math.PI) / 180) *
-              Math.cos((b.lat * Math.PI) / 180) *
-              Math.sin(dLon / 2) ** 2;
-        return 2 * R * Math.asin(Math.sqrt(x));
-      }
-      // Keep evenly spaced display samples so very long activities stay responsive in Canvas.
-      function reducePoints(points, max = 600) {
-        if (points.length <= max) return points;
-        let step = (points.length - 1) / (max - 1),
-          sample = [];
-        for (let i = 0; i < max; i++) sample.push(points[Math.round(i * step)]);
-        return sample;
-      }
-      /* =============================================================================
-         ROUTE ANALYSIS
-         -----------------------------------------------------------------------------
-         Calculate distance, elevation change, smoothed speed, grade, and events.
-         ============================================================================= */
-      function analyze(points) {
-        let cumulativeDistance = 0;
-        let ascent = 0;
-        let descent = 0;
-
-        points.forEach((point, index) => {
-          if (index === 0) {
-            point.cum = 0;
-            point.speed = 0;
-            point.grade = 0;
-            return;
-          }
-
-          const previous = points[index - 1];
-          const distance = hav(previous, point);
-          const duration = (point.time - previous.time) / 1000;
-          const elevationChange = point.ele - previous.ele;
-
-          cumulativeDistance += distance;
-          ascent += Math.max(0, elevationChange);
-          descent += Math.max(0, -elevationChange);
-          point.cum = cumulativeDistance;
-          point.speed = duration > 0 ? (distance / duration) * 3.6 : 0;
-          point.grade = distance > 0 ? (elevationChange / distance) * 100 : 0;
-        });
-
-        const smoothedPoints = points.map((point, index) => {
-          const startIndex = Math.max(0, index - 8);
-          const endIndex = Math.min(points.length - 1, index + 8);
-          const distance = points[endIndex].cum - points[startIndex].cum;
-          const duration =
-            (points[endIndex].time - points[startIndex].time) / 1000;
-          const elevationChange = points[endIndex].ele - points[startIndex].ele;
-
-          return {
-            ...point,
-            speedS: duration > 0 ? (distance / duration) * 3.6 : 0,
-            gradeS: distance > 0 ? (elevationChange / distance) * 100 : 0,
-          };
-        });
-
-        const fastest = smoothedPoints.reduce((current, point) =>
-          point.speedS > current.speedS ? point : current,
-        );
-        const movingPoints = smoothedPoints.filter(
-          (point) => point.speedS > 0.08,
-        );
-        // A stationary or zero-duration GPX has no moving point; use all samples rather than crashing.
-        const slowest = (
-          movingPoints.length ? movingPoints : smoothedPoints
-        ).reduce((current, point) =>
-          point.speedS < current.speedS ? point : current,
-        );
-        const steepestClimb = smoothedPoints.reduce((current, point) =>
-          point.gradeS > current.gradeS ? point : current,
-        );
-        const steepestDescent = smoothedPoints.reduce((current, point) =>
-          point.gradeS < current.gradeS ? point : current,
-        );
-        const minSpeed = slowest.speedS;
-        const maxSpeed = fastest.speedS;
-
-        return {
-          points: smoothedPoints,
-          total: cumulativeDistance,
-          up: ascent,
-          down: descent,
-          minEle: Math.min(...points.map((point) => point.ele)),
-          maxEle: Math.max(...points.map((point) => point.ele)),
-          start: points[0].time,
-          end: points.at(-1).time,
-          minSpeed,
-          maxSpeed,
-          events: [
-            {
-              p: fastest,
-              label: "Fastest section",
-              detail: `${fastest.speedS.toFixed(1)} km/h`,
-            },
-            {
-              p: slowest,
-              label: "Slowest section",
-              detail: `${slowest.speedS.toFixed(1)} km/h`,
-            },
-            {
-              p: steepestClimb,
-              label: "Steepest climb",
-              detail: `${steepestClimb.gradeS.toFixed(1)}% grade`,
-            },
-            {
-              p: steepestDescent,
-              label: "Steepest descent",
-              detail: `${steepestDescent.gradeS.toFixed(1)}% grade`,
-            },
-          ],
-        };
       }
       // Format elapsed seconds for the timeline and activity summary.
       function fmtDuration(s) {
@@ -843,7 +726,7 @@
             );
           if (raw.length < 3) throw Error("missing points");
           data = reducePoints(raw);
-          analysis = analyze(data);
+          analysis = analyzeRoute(data);
           progress = 0;
           zoom = 1;
           pan = { x: 0, y: 0 };
@@ -864,7 +747,7 @@
       function loadSavedRoute(r) {
         if (!r?.points?.length) return;
         data = r.points.map((p) => ({ ...p, time: new Date(p.time) }));
-        analysis = analyze(data);
+        analysis = analyzeRoute(data);
         progress = 0; zoom = 1; pan = { x: 0, y: 0 };
         syncMap(); updateMapBounds();
         $("#routeName").textContent = r.name;
