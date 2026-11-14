@@ -205,13 +205,19 @@ Request (translated from Spanish):
 
 ### November 13, 2026: grading review, mutation sweep, second verifier run
 
-**Tool and model:** Claude Code desktop app, Claude Opus 5.5 (main session) and Claude Sonnet (subagent for the verifier run). Prompts translated from Spanish.
+**Tool and model:** Claude Code desktop app, Claude Opus 5.5 (main session) and Claude Sonnet (subagent for the verifier run). Prompts verbatim (Spanish, with English translation in brackets).
 
-> Grade how this assignment turned out.
+> califica como me quedo esta actividad
 
-> How can you help me improve it?
+[Grade how this assignment turned out.]
 
-> Ok, help me and do all of it.
+> como uedes ayudarme a mejorarlo?
+
+[How can you help me improve it?]
+
+> listo ayudame y hazlo todo
+
+[Ok, help me and do all of it.]
 
 **Work done:**
 - Ran a 14-mutation sweep over `dist/route-logic.js`; 10 one-line changes passed the original 8 tests. Added `tests/route-logic-gaps.test.js` (7 tests) in a tests-only commit `518c7b5`. One of those new tests was itself decorative in its first draft (smoothing window checked only at point 0) and was fixed before the commit.
