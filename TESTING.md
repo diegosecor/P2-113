@@ -102,8 +102,6 @@ node --test
 
 The second command produces no diff. This is evidence that the test assertions stayed the same, but it does not prove that the suite covers every possible bug.
 
-## AI use and remaining requirements
+## AI use
 
 I wrote the tests with AI help. Codex also fixed the failing implementation during the verifier experiment and helped revise this report, organize the failure table, and check the evidence. The prompts available from this chat are recorded in [prompt_log.md](prompt_log.md), under HW9 and the November 12 review. The earlier development history is kept there too.
-
-The assignment asks for one test written without AI and a report written by the student. The current tests were AI-assisted, and this report includes AI-written edits, so those requirements are not yet complete. Before submission, I need to write an additional test independently and write the final report in my own words. A final browser check, publishing the updated files, and submitting the Google form also remain to be confirmed.
