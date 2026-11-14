@@ -47,7 +47,7 @@ export function analyzeRoute(points) {
     ascent += Math.max(0, elevationChange);
     descent += Math.max(0, -elevationChange);
     point.cum = cumulativeDistance;
-    point.speed = duration > 0 ? distance / duration : 0;
+    point.speed = duration > 0 ? (distance / duration) * 3.6 : 0;
     point.grade = distance > 0 ? (elevationChange / distance) * 100 : 0;
   });
 
