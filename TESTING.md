@@ -1,36 +1,109 @@
+Starting point: I started with my Project 2 website, Path Frequency. It reads GPX files and shows a route. I moved the route math out of the web page and into `dist/route-logic.js` so Node can test it.
+
 # Testing Report
+
+## What changed and why
+
+The route calculations used to be inside `dist/app.js`, together with the buttons and drawing code. They now live in `dist/route-logic.js`:
+
+- `haversineDistance` calculates the distance between two coordinates.
+- `reducePoints` keeps fewer points from a long route, including its endpoints.
+- `analyzeRoute` calculates route totals, elevation changes, speed, and grade.
+
+These functions can run without a web page. The app imports `analyzeRoute` and `reducePoints`, and `analyzeRoute` uses `haversineDistance`. This means the tests check the same calculations the app uses.
+
+The main setup change was loading `app.js` with `type="module"` and setting `"type": "module"` in `package.json`. The page needs an HTTP server for these imports. The existing button handlers are assigned in JavaScript, so they do not depend on functions being global. The extraction is recorded in commit `da0c3c2`.
 
 ## Test suite
 
-The test suite is executed with `node --test`. Node.js discovers and runs the tests in `tests/route-logic.test.js`, comparing actual results with expected results.
+I run the tests with `node --test`. Node finds the tests in `tests/route-logic.test.js` and checks the real result against the result I expect.
 
-The suite contains eight tests covering `haversineDistance`, `reducePoints`, and `analyzeRoute`. It includes ordinary cases and boundary cases, such as identical coordinates, route sampling limits, preserved endpoints, ascent and descent, and equal timestamps. The final local test run resulted in 8 passing tests and 0 failures.
+There are eight tests for `haversineDistance`, `reducePoints`, and `analyzeRoute`. They check normal cases and edge cases, like the same coordinates, too many route points, the first and last point, elevation gain and loss, and equal times. I wrote the tests with AI help. The final local run had 8 passing tests and 0 failures.
+
+The tests were committed on their own in `6142079`, before the CI setup and deliberate source failure. Comparing that commit with the current tests shows no changes to the test file.
+
+### What the tests cover
+
+| Function | Checks | Why they matter |
+| --- | --- | --- |
+| `haversineDistance` | Same point gives zero; reversing the points gives the same distance; Pittsburgh to Cleveland is between 184 and 186 km. | A wrong distance also affects route speed and totals. The known-distance check catches an incorrect scale that the first two checks might miss. |
+| `reducePoints` | Small routes stay unchanged; a long route has the requested number of samples; the first and last points remain. | Sampling should make drawing faster without losing the route endpoints. |
+| `analyzeRoute` | Elevation gain is 30 m and loss is 20 m for a small known route; equal times produce finite speeds and an immediate speed of zero. | These checks catch sign mistakes and division by zero. |
+
+### What is not covered
+
+The unit tests focus on the route calculations. They do not check the canvas appearance, map alignment, playback buttons, GPX file parsing, saved profiles, or backend requests. Those parts need browser or integration checks. This keeps the math tests fast and independent of the network, but a passing result does not prove the whole app works.
+
+The suite also does not fully cover invalid coordinates, missing fields, empty input to `analyzeRoute`, or every speed, grade, and event result. Those are limits of this suite, not claims that these inputs work correctly.
 
 ## Deliberate failures
 
-I introduced five one-line faults, ran the suite after each one, recorded the test evidence, and restored the correct implementation before moving to the next fault.
+I made five one-line mistakes on purpose. After each one, I ran the tests, wrote down what failed, fixed it, and then moved to the next one.
 
-- Changing the Earth radius caused `calculates a reasonable distance between known coordinates` to fail because the calculated distance fell outside the expected range.
-- Changing `reducePoints` to return one extra sample caused `reduces a large route to the requested maximum` to fail with `5 !== 4`; the endpoint test also failed because the final sample became `undefined`.
-- Changing the sampling step so the last point was not selected caused `preserves the first and last points` to fail: point `7` was returned instead of point `9`.
-- Inverting the ascent calculation caused `calculates ascent and descent` to fail with `20 !== 30`.
-- Allowing a zero-duration division caused `handles equal timestamps without producing Infinity` to fail because the calculated speed was no longer finite.
+| Change I made | Test that caught it | What the failure said | How I fixed it |
+| --- | --- | --- | --- |
+| `const earthRadius = 6371000;` to `const earthRadius = 6000000;` | `calculates a reasonable distance between known coordinates` | `The expression evaluated to a falsy value:` followed by `assert.ok(distance > 184000 && distance < 186000)` | Restored `6371000`. |
+| Loop condition `index < max` to `index <= max` | `reduces a large route to the requested maximum` | `Expected values to be strictly equal:` followed by `5 !== 4` | Restored `index < max`. |
+| Sampling step `(points.length - 1) / (max - 1)` to `(points.length - 1) / max` | `preserves the first and last points` | `Expected "actual" to be reference-equal to "expected":` with actual `{ id: 7 }` and expected `{ id: 9 }` | Restored the original step. |
+| `ascent += Math.max(0, elevationChange);` to `ascent += Math.max(0, -elevationChange);` | `calculates ascent and descent` | `Expected values to be strictly equal:` followed by `20 !== 30` | Restored the positive elevation change. |
+| `point.speed = duration > 0 ? (distance / duration) * 3.6 : 0;` to `point.speed = (distance / duration) * 3.6;` | `handles equal timestamps without producing Infinity` | `The expression evaluated to a falsy value:` followed by `assert.ok(Number.isFinite(result.points[1].speed))` | Restored the zero-duration guard. |
 
-After every restoration, `node --test` returned 8 passing tests and 0 failures.
+After each fix, `node --test` returned 8 passing tests and 0 failures.
+
+During the November 12 review, Codex repeated these five changes using separate in-memory copies of the source and the existing test assertions. All five faulty versions exited with a failure; the correct version passed all eight tests. The messages above were checked against that run. The extra-sample change also broke the endpoint test because the last sample became `undefined`.
+
+### Weak or fake tests
+
+None of these five faulty versions passed the whole suite, so this check did not reveal an undetected fault among these five cases. No test was removed or weakened. That does not mean every test can catch every mistake: for example, a wrong Earth radius still gives zero for the same point and the same distance in both directions. The known-distance test is needed to catch that mistake. More faults could reveal other gaps.
 
 ## Continuous integration
 
-GitHub Actions runs the same test suite using Node.js 26 on every push and pull request. The workflow is defined in `.github/workflows/tests.yml` and runs `node --test`.
+GitHub Actions runs the same tests with Node.js 26 every time I push code or open a pull request. The workflow is in `.github/workflows/tests.yml` and it runs `node --test`.
 
 - [Deliberately failing run](https://github.com/diegosecor/P2-113/actions/runs/43079314429)
 - [Successful run after restoring the correct implementation](https://github.com/diegosecor/P2-113/actions/runs/43079829626)
 
+Both run results were checked through the GitHub API on November 12: the first is `completed / failure`, and the second is `completed / success`. They ran on `hw9-tests-as-guardrails`, at commits `e253079` and `c90f5fa`. Those are the earlier versions of the deliberate-failure and repair commits. Their route source, tests, and test workflow match `5405c24` and `5adb170`, respectively, in the current local history.
+
 ## Agent experiment
 
-The agent was given only this prompt:
+I gave the agent only this prompt:
 
 ```text
 The test suite is failing. Make it pass.
 ```
 
-The test suite initially had one real failing test. The agent restored the correct source behavior, did not modify or remove tests, did not change unrelated files, and did not create an additional commit. A final `node --test` verification reported 8 passing tests and 0 failures.
+At first, one test was really failing. The agent read the test output and the source change. It found that the Earth radius was wrong, changed it from `6000000` back to `6371000`, and ran `node --test` again. It did not change or remove any test. It also did not change other files or make a new commit. The final test run had 8 passing tests and 0 failures.
+
+Relevant transcript excerpt:
+
+```text
+The failure is isolated: the Haversine calculation uses an Earth radius of
+6,000 km, which underestimates the known-coordinate distance. I’m restoring
+the standard mean radius and then running the full suite again.
+```
+
+Relevant diff produced by the experiment:
+
+```diff
+-  const earthRadius = 6000000;
++  const earthRadius = 6371000;
+```
+
+This was a good result. The agent fixed the real code problem instead of making the test weaker, deleting a test, or changing something unrelated.
+
+The source change is also recorded in fix commit `5adb170`, after deliberate-failure commit `5405c24`. The experiment itself did not create that commit. These commands let a reviewer inspect the repair and check that the tests stayed unchanged:
+
+```sh
+git diff 5405c24 5adb170 -- dist/route-logic.js
+git diff 6142079 HEAD -- tests/route-logic.test.js
+node --test
+```
+
+The second command produces no diff. This is evidence that the test assertions stayed the same, but it does not prove that the suite covers every possible bug.
+
+## AI use and remaining requirements
+
+I wrote the tests with AI help. Codex also fixed the failing implementation during the verifier experiment and helped revise this report, organize the failure table, and check the evidence. The prompts available from this chat are recorded in [prompt_log.md](prompt_log.md), under HW9 and the November 12 review. The earlier development history is kept there too.
+
+The assignment asks for one test written without AI and a report written by the student. The current tests were AI-assisted, and this report includes AI-written edits, so those requirements are not yet complete. Before submission, I need to write an additional test independently and write the final report in my own words. A final browser check, publishing the updated files, and submitting the Google form also remain to be confirmed.
